@@ -28,14 +28,18 @@ router.post('/registered', function (req, res, next) {
 });
 
 // Adduser route - GET: Show the user registration form
-router.get('/adduser', (req, res) => {
-    res.render('adduser', { shopData: req.app.locals.shopData });
+router.get('/adduser', function (req, res, next) {
+    res.render('adduser.ejs');
 });
 
 // Adduser route - POST: Handle user form submission and add user to the database
-router.post('/adduser', async (req, res) => {
-    const { username, first_name, last_name, email, password } = req.body;
-
+router.post('/adduser', async function (req, res, next ) {
+    const username = req.body.username;
+    const first_name = req.body.first_name;
+    const last_name = req.body.last_name;
+    const email = req.body.email;
+    const password = req.body.password;
+    
     try {
         // Hash the password before saving to the database
         const hashedPassword = await bcrypt.hash(password, saltRounds);
