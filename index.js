@@ -49,5 +49,13 @@ app.use('/', mainRoutes);
 const usersRoutes = require('./routes/users');
 app.use('/users', usersRoutes);
 
+// Load the books routes
+const booksRoutes = require('./routes/books');  // Assuming books routes are in /routes/books.js
+app.use('/books', booksRoutes);
+
+app.get('/', (req, res) => {
+    res.render('index', { shopData: req.app.locals.shopData });
+});
+
 // Start the web app listening
 app.listen(port, () => console.log(`Node app listening on port ${port}!`));
