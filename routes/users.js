@@ -9,8 +9,9 @@ router.get('/register', function (req, res, next) {
 });
 
 router.post('/registered', function (req, res, next) {
-    const plainPassword = req.body.password;  // Extract the plain password from the request
-
+    const plainPassword = req.body.password;  // Get the password
+    const username = req.body.username;       // Get the username
+    
     // Hash the password before saving to the database
     bcrypt.hash(plainPassword, saltRounds, function (err, hashedPassword) {
         if (err) {
