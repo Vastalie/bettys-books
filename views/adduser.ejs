@@ -1,12 +1,12 @@
 <!doctype html>
 <html>
   <head>
-    <title>Add user to <%=shopData.shopName%></title>
+    <title>Add user to <%= shopData.shopName %></title>
     <link rel="stylesheet" type="text/css" href="/main.css" />
   </head>
   <body>
-    <h1><%=shopData.shopName%>: Add user</h1>
-    <form method="POST" action="/adduser">
+    <h1><%= shopData.shopName %>: Add user</h1>
+    <form method="POST" action="/users/adduser"> <!-- Corrected action attribute -->
         <p>Username: <input type="text" name="username" required /></p>
         <p>First Name: <input type="text" name="first_name" required /></p>
         <p>Last Name: <input type="text" name="last_name" required /></p>
