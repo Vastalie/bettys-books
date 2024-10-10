@@ -25,7 +25,13 @@ router.post('/adduser', async function (req, res, next) {
                 console.error('Error inserting user data:', err);
                 return res.status(500).send('Error inserting user data');
             }
-            res.redirect('/users/adduser-success');  // Redirect to success page
+
+            // Build the result response string (Only declare 'result' once)
+            let response = 'Hello ' + first_name + ' ' + last_name + ' you are now registered! We will send an email to you at ' + email + '.';
+            response += ' Your password is: ' + password + ' and your hashed password is: ' + hashedPassword;
+            
+            // Send the response with plain and hashed passwords
+            res.send(response);
         });
     } catch (err) {
         console.error('Error hashing password:', err);
