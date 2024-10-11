@@ -18,3 +18,4 @@ CREATE TABLE Users (
     email VARCHAR(100) NOT NULL UNIQUE, -- Ensure email is unique
     hashedPassword VARCHAR(255) NOT NULL
 );
+
