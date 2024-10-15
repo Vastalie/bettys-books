@@ -1,6 +1,7 @@
 // Import express and path modules
 const express = require('express');
 const path = require('path');
+var session = require ('express-session');
 
 // Import mysql module
 const mysql = require('mysql2');
