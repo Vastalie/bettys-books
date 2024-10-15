@@ -109,5 +109,11 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// Profile page route - accessible only if logged in
+router.get('/profile', redirectLogin, function (req, res) {
+    // Replace this with actual user data from your database, if necessary
+    res.render('profile', { user: req.session.userId });
+});
+
 // Export the router
 module.exports = router;
