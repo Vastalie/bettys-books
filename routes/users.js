@@ -3,6 +3,15 @@ const router = express.Router();
 const bcrypt = require('bcrypt');  // For password hashing
 const saltRounds = 10;  // Define the number of salt rounds for bcrypt
 
+// Task 4: Add redirectLogin middleware after the require statements
+const redirectLogin = (req, res, next) => {
+    if (!req.session.userId ) {
+        res.redirect('./login'); // redirect to the login page
+    } else {
+        next(); // move to the next middleware function
+    }
+}
+
 // Register form route
 router.get('/register', (req, res) => {
     res.render('register', { shopData: req.app.locals.shopData });
