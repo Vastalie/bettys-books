@@ -93,7 +93,10 @@ router.post('/login', async (req, res) => {
             const match = await bcrypt.compare(trimmedPassword, user.hashedPassword);
 
             if (match) {
-                // Successful login
+                // Successful login - Save user session here
+                req.session.userId = user.id;  // Save the userId in the session
+                console.log("Session saved with userId: ", req.session.userId);
+
                 return res.render('loggedin', { message: `Login successful! Welcome, ${user.username}.` });
             } else {
                 // Failed login
