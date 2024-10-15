@@ -19,6 +19,17 @@ app.use(express.urlencoded({ extended: true }));
 // Set up public folder (for CSS and static files)
 app.use(express.static(path.join(__dirname, 'public')));
 
+
+// Create a session (Task 3)
+app.use(session({
+    secret: 'somerandomstuff',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        expires: 600000 // Cookie expiration time
+    }
+}));
+
 // Define the database connection
 const db = mysql.createConnection({
     host: 'localhost',
