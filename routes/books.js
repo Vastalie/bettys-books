@@ -1,11 +1,13 @@
 const express = require("express")
 const router = express.Router()
 
-router.get('/search',function(req, res, next){
+// Protect the search route with redirectLogin
+router.get('/search', redirectLogin, function(req, res, next){
     res.render("search.ejs")
 })
 
-router.get('/search_result', function (req, res, next) {
+// Protect the search_result route with redirectLogin
+router.get('/search_result', redirectLogin, function (req, res, next) {
     // Search the database
     let sqlquery = "SELECT * FROM books WHERE name LIKE '%" + req.query.search_text + "%'" // query database to get all the books
     // execute sql query
@@ -17,8 +19,8 @@ router.get('/search_result', function (req, res, next) {
      }) 
 })
 
-
-router.get('/list', function(req, res, next) {
+// Protect the list route with redirectLogin
+router.get('/list', redirectLogin, function(req, res, next) {
     let sqlquery = "SELECT * FROM books" // query database to get all the books
     // execute sql query
     db.query(sqlquery, (err, result) => {
@@ -29,11 +31,13 @@ router.get('/list', function(req, res, next) {
      })
 })
 
-router.get('/addbook', function (req, res, next) {
+// Protect the addbook route with redirectLogin
+router.get('/addbook', redirectLogin, function (req, res, next) {
     res.render('addbook.ejs')
 })
 
-router.post('/bookadded', function (req, res, next) {
+// Protect the bookadded route with redirectLogin
+router.post('/bookadded', redirectLogin, function (req, res, next) {
     // saving data in database
     let sqlquery = "INSERT INTO books (name, price) VALUES (?,?)"
     // execute sql query
@@ -47,7 +51,8 @@ router.post('/bookadded', function (req, res, next) {
     })
 }) 
 
-router.get('/bargainbooks', function(req, res, next) {
+// Protect the bargainbooks route with redirectLogin
+router.get('/bargainbooks', redirectLogin, function(req, res, next) {
     let sqlquery = "SELECT * FROM books WHERE price < 20"
     db.query(sqlquery, (err, result) => {
         if (err) {
@@ -56,7 +61,6 @@ router.get('/bargainbooks', function(req, res, next) {
         res.render("bargains.ejs", {availableBooks:result})
     })
 }) 
-
 
 // Export the router object so index.js can access it
 module.exports = router

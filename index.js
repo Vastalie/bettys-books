@@ -1,7 +1,7 @@
 // Import express and path modules
 const express = require('express');
 const path = require('path');
-var session = require ('express-session');
+var session = require('express-session');
 
 // Import mysql module
 const mysql = require('mysql2');
@@ -18,7 +18,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Set up public folder (for CSS and static files)
 app.use(express.static(path.join(__dirname, 'public')));
-
 
 // Create a session (Task 3)
 app.use(session({
@@ -53,6 +52,50 @@ global.db = db;
 // Define our application-specific data
 app.locals.shopData = { shopName: "Bettys Books" };
 
+// Define redirectLogin middleware
+const redirectLogin = (req, res, next) => {
+    if (!req.session.userId) {
+        return res.redirect('/login'); // Redirect to login page if user not logged in
+    }
+    next(); // Proceed if logged in
+};
+
+module.exports.redirectLogin = redirectLogin;
+
+// Route for login (you need a login page to test redirectLogin)
+app.get('/login', (req, res) => {
+    res.render('login');  // Render a login page (you need to create login.ejs)
+});
+
+// POST route for handling login form submission
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;  // Get username and password from the form
+    
+    // Query to check if the user exists in the database
+    const query = 'SELECT * FROM users WHERE username = ?';
+    db.query(query, [username], (err, results) => {
+        if (err) {
+            console.error('Database query error:', err);
+            return res.status(500).send('Server error');
+        }
+
+        if (results.length > 0) {
+            const user = results[0];
+
+            // In a real application, use bcrypt to compare hashed passwords
+            if (password === user.password) {  // Replace with bcrypt.compare() in a real-world scenario
+                // Set the session userId if login is successful
+                req.session.userId = user.id;
+                return res.redirect('/list');  // Redirect to a protected page after successful login
+            } else {
+                return res.status(401).send('Incorrect password');  // Password is incorrect
+            }
+        } else {
+            return res.status(404).send('User not found');  // User does not exist
+        }
+    });
+});
+
 // Load the route handlers
 const mainRoutes = require("./routes/main");
 app.use('/', mainRoutes);
@@ -65,8 +108,35 @@ app.use('/users', usersRoutes);
 const booksRoutes = require('./routes/books');  // Assuming books routes are in /routes/books.js
 app.use('/books', booksRoutes);
 
-app.get('/', (req, res) => {
-    res.render('index', { shopData: req.app.locals.shopData });
+// Example of using redirectLogin on a protected route
+app.get('/list', redirectLogin, function (req, res) {
+    // Example book data (in practice, this could come from your database)
+    const bookData = [
+        { title: 'Book 1', author: 'Author 1' },
+        { title: 'Book 2', author: 'Author 2' }
+    ];
+    res.render('list', { books: bookData });
+});
+
+// POST /logout to handle user logout
+app.post('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            return res.redirect('/list');  // If there's an error, stay on the list page
+        }
+        res.clearCookie('connect.sid');  // Clear the session cookie
+        res.redirect('/login');  // Redirect to the login page after logging out
+    });
+});
+
+// GET /logout to display a logout message
+app.get('/logout', redirectLogin, (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            return res.redirect('/');
+        }
+        res.send('You are now logged out. <a href="/">Home</a>');
+    });
 });
 
 // Start the web app listening
