@@ -1,5 +1,7 @@
 const express = require("express")
 const router = express.Router()
+const { redirectLogin } = require('../index');  // Import redirectLogin middleware
+
 
 // Protect the search route with redirectLogin
 router.get('/search', redirectLogin, function(req, res, next){

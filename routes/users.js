@@ -5,12 +5,12 @@ const saltRounds = 10;  // Define the number of salt rounds for bcrypt
 
 // Task 4: Add redirectLogin middleware after the require statements
 const redirectLogin = (req, res, next) => {
-    if (!req.session.userId ) {
+    if (!req.session.userId) {
         res.redirect('./login'); // redirect to the login page
     } else {
         next(); // move to the next middleware function
     }
-}
+};
 
 // Register form route
 router.get('/register', (req, res) => {
@@ -30,7 +30,7 @@ router.post(['/adduser', '/register'], async function (req, res) {
     try {
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-        const sql = `INSERT INTO Users (username, first_name, last_name, email, hashedPassword) VALUES (?, ?, ?, ?, ?)`;
+        const sql = `INSERT INTO Users (username, first_name, last_name, email, password) VALUES (?, ?, ?, ?, ?)`;
         global.db.query(sql, [trimmedUsername, first_name, last_name, email, hashedPassword], (err) => {
             if (err) {
                 console.error('Error inserting user data:', err);
@@ -38,7 +38,7 @@ router.post(['/adduser', '/register'], async function (req, res) {
             }
 
             // Redirect to success page after registration
-            res.redirect('/users/adduser-success');  
+            res.redirect('/users/adduser-success');
         });
     } catch (err) {
         console.error('Error hashing password:', err);
@@ -76,6 +76,9 @@ router.post('/login', async (req, res) => {
     const trimmedUsername = username.trim();
     const trimmedPassword = password.trim();
 
+    // Log the plain text password to ensure it's correctly received
+    console.log("Plain text password entered by user:", trimmedPassword);
+
     try {
         const sql = `SELECT * FROM Users WHERE username = ?`;
         global.db.query(sql, [trimmedUsername], async (err, results) => {
@@ -90,7 +93,22 @@ router.post('/login', async (req, res) => {
 
             const user = results[0];
 
-            const match = await bcrypt.compare(trimmedPassword, user.hashedPassword);
+            // Log the user object to verify the retrieved data
+            console.log("User from DB:", user);
+
+            // Ensure the password field is correctly retrieved from the DB
+            const hashedPassword = user.password || user.hashedPassword; // Adjust to your DB field name
+
+            // Log the hashed password
+            console.log("Hashed password from DB:", hashedPassword);
+
+            if (!hashedPassword) {
+                console.error("Error: No hashed password found in the database for this user.");
+                return res.status(500).send('Server error: No password stored for this user.');
+            }
+
+            // Use bcrypt to compare the plain text password with the hashed password from the database
+            const match = await bcrypt.compare(trimmedPassword, hashedPassword);
 
             if (match) {
                 // Successful login - Save user session here
@@ -111,7 +129,6 @@ router.post('/login', async (req, res) => {
 
 // Profile page route - accessible only if logged in
 router.get('/profile', redirectLogin, function (req, res) {
-    // Replace this with actual user data from your database, if necessary
     res.render('profile', { user: req.session.userId });
 });
 

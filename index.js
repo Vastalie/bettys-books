@@ -62,6 +62,7 @@ const redirectLogin = (req, res, next) => {
 
 module.exports.redirectLogin = redirectLogin;
 
+
 // Route for login (you need a login page to test redirectLogin)
 app.get('/login', (req, res) => {
     res.render('login');  // Render a login page (you need to create login.ejs)
@@ -118,6 +119,12 @@ app.get('/list', redirectLogin, function (req, res) {
     res.render('list', { books: bookData });
 });
 
+app.get('/books/search', redirectLogin, function (req, res) {
+    console.log(req.session); // Check if session is available
+    res.render('searchResults');
+});
+
+
 // POST /logout to handle user logout
 app.post('/logout', (req, res) => {
     req.session.destroy(err => {
@@ -126,16 +133,6 @@ app.post('/logout', (req, res) => {
         }
         res.clearCookie('connect.sid');  // Clear the session cookie
         res.redirect('/login');  // Redirect to the login page after logging out
-    });
-});
-
-// GET /logout to display a logout message
-app.get('/logout', redirectLogin, (req, res) => {
-    req.session.destroy(err => {
-        if (err) {
-            return res.redirect('/');
-        }
-        res.send('You are now logged out. <a href="/">Home</a>');
     });
 });
 
