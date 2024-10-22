@@ -1,3 +1,4 @@
+const { check, validationResult } = require('express-validator');
 const express = require("express");
 const router = express.Router();
 const bcrypt = require('bcrypt');  // For password hashing
@@ -11,6 +12,7 @@ const redirectLogin = (req, res, next) => {
         next(); // move to the next middleware function
     }
 };
+
 
 // Register form route
 router.get('/register', (req, res) => {
@@ -131,6 +133,18 @@ router.post('/login', async (req, res) => {
 router.get('/profile', redirectLogin, function (req, res) {
     res.render('profile', { user: req.session.userId });
 });
+
+// Handle registration form submission with email validation
+router.post('/registered', [check('email').isEmail()], function (req, res) {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.redirect('./register'); 
+    } else { 
+        // REST OF YOUR CODE HERE
+        res.send('Registration successful!');  // Example of a success message, replace with your logic
+    }
+});
+
 
 // Export the router
 module.exports = router;
