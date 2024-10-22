@@ -13,39 +13,14 @@ const redirectLogin = (req, res, next) => {
     }
 };
 
-
 // Register form route
 router.get('/register', (req, res) => {
-    res.render('register', { shopData: req.app.locals.shopData });
+    res.render('register', { errors: [], shopData: req.app.locals.shopData });
 });
 
 // Add user form route
 router.get('/adduser', (req, res) => {
     res.render('adduser', { shopData: req.app.locals.shopData });
-});
-
-// Handle registration
-router.post(['/adduser', '/register'], async function (req, res) {
-    const { username, first_name, last_name, email, password } = req.body;
-    const trimmedUsername = username.trim();
-
-    try {
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-        const sql = `INSERT INTO Users (username, first_name, last_name, email, password) VALUES (?, ?, ?, ?, ?)`;
-        global.db.query(sql, [trimmedUsername, first_name, last_name, email, hashedPassword], (err) => {
-            if (err) {
-                console.error('Error inserting user data:', err);
-                return res.status(500).send('Error inserting user data');
-            }
-
-            // Redirect to success page after registration
-            res.redirect('/users/adduser-success');
-        });
-    } catch (err) {
-        console.error('Error hashing password:', err);
-        res.status(500).send('Internal server error');
-    }
 });
 
 // Success page route for adduser and register
@@ -67,19 +42,29 @@ router.get('/list', (req, res) => {
     });
 });
 
-// Login form route
+// Add the missing GET route for login page
 router.get('/login', (req, res) => {
-    res.render('login', { shopData: req.app.locals.shopData });
+    res.render('login', { errors: [], shopData: req.app.locals.shopData }); // Pass errors as an empty array initially
 });
 
-// Handle login POST request
-router.post('/login', async (req, res) => {
+
+// Handle login POST request with validation
+router.post('/login', [
+    check('username').notEmpty().withMessage('Username is required'),
+    check('password').notEmpty().withMessage('Password is required'),
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        // If there are validation errors, return to login page with error messages
+        return res.render('login', {
+            errors: errors.array(),
+            shopData: req.app.locals.shopData
+        });
+    }
+
     const { username, password } = req.body;
     const trimmedUsername = username.trim();
     const trimmedPassword = password.trim();
-
-    // Log the plain text password to ensure it's correctly received
-    console.log("Plain text password entered by user:", trimmedPassword);
 
     try {
         const sql = `SELECT * FROM Users WHERE username = ?`;
@@ -94,29 +79,18 @@ router.post('/login', async (req, res) => {
             }
 
             const user = results[0];
-
-            // Log the user object to verify the retrieved data
-            console.log("User from DB:", user);
-
-            // Ensure the password field is correctly retrieved from the DB
             const hashedPassword = user.password || user.hashedPassword; // Adjust to your DB field name
-
-            // Log the hashed password
-            console.log("Hashed password from DB:", hashedPassword);
 
             if (!hashedPassword) {
                 console.error("Error: No hashed password found in the database for this user.");
                 return res.status(500).send('Server error: No password stored for this user.');
             }
 
-            // Use bcrypt to compare the plain text password with the hashed password from the database
             const match = await bcrypt.compare(trimmedPassword, hashedPassword);
 
             if (match) {
                 // Successful login - Save user session here
                 req.session.userId = user.id;  // Save the userId in the session
-                console.log("Session saved with userId: ", req.session.userId);
-
                 return res.render('loggedin', { message: `Login successful! Welcome, ${user.username}.` });
             } else {
                 // Failed login
@@ -129,22 +103,71 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Profile page route - accessible only if logged in
-router.get('/profile', redirectLogin, function (req, res) {
-    res.render('profile', { user: req.session.userId });
-});
-
-// Handle registration form submission with email validation
-router.post('/registered', [check('email').isEmail()], function (req, res) {
+// Handle registration with validation and checking for duplicates
+router.post('/register', [
+    check('first_name').notEmpty().withMessage('First name is required'),
+    check('last_name').notEmpty().withMessage('Last name is required'),
+    check('email').isEmail().withMessage('Please enter a valid email'),
+    check('username').notEmpty().withMessage('Username is required'),
+    check('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long'),
+], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        res.redirect('./register'); 
-    } else { 
-        // REST OF YOUR CODE HERE
-        res.send('Registration successful!');  // Example of a success message, replace with your logic
+        // If validation fails, re-render the page with error messages
+        return res.render('register', {
+            errors: errors.array(),
+            shopData: req.app.locals.shopData
+        });
     }
-});
 
+    // Trim inputs to remove any extra spaces
+    const { username, first_name, last_name, email, password } = req.body;
+    const trimmedUsername = username.trim();
+    const trimmedFirstName = first_name.trim();
+    const trimmedLastName = last_name.trim();
+    const trimmedEmail = email.trim();
+
+    // Check if any required fields are empty after trimming
+    if (!trimmedUsername || !trimmedFirstName || !trimmedLastName || !trimmedEmail) {
+        return res.status(400).send('All fields are required.');
+    }
+
+    // Check if the username or email already exists
+    const checkSql = 'SELECT * FROM Users WHERE username = ? OR email = ?';
+    global.db.query(checkSql, [trimmedUsername, trimmedEmail], async (err, results) => {
+        if (err) {
+            console.error('Error checking for duplicates:', err);
+            return res.status(500).send('Error checking for duplicates');
+        }
+
+        if (results.length > 0) {
+            // If the user already exists
+            return res.render('register', {
+                errors: [{ msg: 'Username or email already exists.' }],
+                shopData: req.app.locals.shopData
+            });
+        }
+
+        try {
+            const hashedPassword = await bcrypt.hash(password, 10); // Hash the password
+
+            // Insert the new user into the database
+            const sql = `INSERT INTO Users (username, first_name, last_name, email, hashedPassword) VALUES (?, ?, ?, ?, ?)`;
+            global.db.query(sql, [trimmedUsername, trimmedFirstName, trimmedLastName, trimmedEmail, hashedPassword], (err) => {
+                if (err) {
+                    console.error('Error inserting user data:', err);
+                    return res.status(500).send('Error inserting user data');
+                }
+
+                // Redirect to success page after successful registration
+                res.redirect('/users/adduser-success');
+            });
+        } catch (err) {
+            console.error('Error hashing password:', err);
+            res.status(500).send('Internal server error');
+        }
+    });
+});
 
 // Export the router
 module.exports = router;

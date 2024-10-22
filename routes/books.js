@@ -1,68 +1,89 @@
-const express = require("express")
-const router = express.Router()
-const { redirectLogin } = require('../index');  // Import redirectLogin middleware
+const express = require('express');
+const router = express.Router();
+// Ensure you have db set globally like in your index.js
+const db = global.db;  // Ensure db connection is globally accessible
 
 
-// Protect the search route with redirectLogin
-router.get('/search', redirectLogin, function(req, res, next){
-    res.render("search.ejs")
-})
+// Route to render the book search page
+router.get('/search', (req, res) => {
+    res.render('search');
+});
 
-// Protect the search_result route with redirectLogin
-router.get('/search_result', redirectLogin, function (req, res, next) {
-    // Search the database
-    let sqlquery = "SELECT * FROM books WHERE name LIKE '%" + req.query.search_text + "%'" // query database to get all the books
-    // execute sql query
+// Route to display previously searched books
+router.get('/searched_books', (req, res) => {
+    const searchedBooks = req.session.searchedBooks || [];  // Retrieve searched books from session or an empty array if none
+    res.render('searchedBooks', { availableBooks: searchedBooks });
+});
+
+
+router.get('/search_result', (req, res) => {
+    const searchText = req.query.search_text;
+    let sqlquery = "SELECT * FROM books WHERE name LIKE ?";
+    let queryValue = ['%' + searchText + '%'];
+
+    // Query the database to find books that match the search query
+    db.query(sqlquery, queryValue, (err, result) => {
+        if (err) {
+            return res.status(500).send('Error fetching search results.');
+        }
+
+        // Insert the search term into the searched_books table
+        let insertSearch = 'INSERT INTO searched_books (search_term) VALUES (?)';
+        db.query(insertSearch, [searchText], (err, result) => {
+            if (err) {
+                console.error('Error inserting search term:', err);
+            }
+        });
+
+        // Render the search results page
+        res.render('searchResults', { availableBooks: result, searchText: searchText });
+    });
+});
+
+
+// Route to render the add book page
+router.get('/addbook', (req, res) => {
+    res.render('addbook.ejs');  // Render the addbook form
+});
+
+// Route to handle the form submission when a book is added
+router.post('/bookadded', (req, res) => {
+    const { name, price } = req.body;  // Get the name and price from form
+
+    // Insert the new book into the database
+    const sqlquery = "INSERT INTO books (name, price) VALUES (?, ?)";
+    const newRecord = [name, price];
+
+    db.query(sqlquery, newRecord, (err, result) => {
+        if (err) {
+            return res.status(500).send('Error adding the book.');
+        }
+        res.send(`This book has been added to the database, name: ${name}, price: ${price}`);
+    });
+});
+
+// Route to list all books
+router.get('/list', (req, res) => {
+    const sqlquery = "SELECT * FROM books";  // Query to fetch all books
+
     db.query(sqlquery, (err, result) => {
         if (err) {
-            next(err)
+            return res.status(500).send('Error fetching books from the database.');
         }
-        res.render("list.ejs", {availableBooks:result})
-     }) 
-})
+        res.render('list.ejs', { availableBooks: result });  // Render the list.ejs template
+    });
+});
 
-// Protect the list route with redirectLogin
-router.get('/list', redirectLogin, function(req, res, next) {
-    let sqlquery = "SELECT * FROM books" // query database to get all the books
-    // execute sql query
+// Route to show books priced under 20
+router.get('/bargainbooks', (req, res) => {
+    const sqlquery = "SELECT * FROM books WHERE price < 20";  // Query for books under $20
+
     db.query(sqlquery, (err, result) => {
         if (err) {
-            next(err)
+            return res.status(500).send('Error fetching bargain books from the database.');
         }
-        res.render("list.ejs", {availableBooks:result})
-     })
-})
+        res.render('bargains.ejs', { availableBooks: result });  // Render the bargains.ejs template
+    });
+});
 
-// Protect the addbook route with redirectLogin
-router.get('/addbook', redirectLogin, function (req, res, next) {
-    res.render('addbook.ejs')
-})
-
-// Protect the bookadded route with redirectLogin
-router.post('/bookadded', redirectLogin, function (req, res, next) {
-    // saving data in database
-    let sqlquery = "INSERT INTO books (name, price) VALUES (?,?)"
-    // execute sql query
-    let newrecord = [req.body.name, req.body.price]
-    db.query(sqlquery, newrecord, (err, result) => {
-        if (err) {
-            next(err)
-        }
-        else
-            res.send(' This book is added to database, name: '+ req.body.name + ' price '+ req.body.price)
-    })
-}) 
-
-// Protect the bargainbooks route with redirectLogin
-router.get('/bargainbooks', redirectLogin, function(req, res, next) {
-    let sqlquery = "SELECT * FROM books WHERE price < 20"
-    db.query(sqlquery, (err, result) => {
-        if (err) {
-            next(err)
-        }
-        res.render("bargains.ejs", {availableBooks:result})
-    })
-}) 
-
-// Export the router object so index.js can access it
-module.exports = router
+module.exports = router;

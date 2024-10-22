@@ -12,10 +12,10 @@ CREATE USER IF NOT EXISTS 'bettys_books_app'@'localhost' IDENTIFIED BY 'qwertyui
 GRANT ALL PRIVILEGES ON bettys_books.* TO ' bettys_books_app'@'localhost';
 
 CREATE TABLE Users (
-    username VARCHAR(50) PRIMARY KEY, -- Assuming username is unique
+    username VARCHAR(50) PRIMARY KEY,  -- Username is unique
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE, -- Ensure email is unique
+    email VARCHAR(100) NOT NULL UNIQUE,  -- Email is unique
     hashedPassword VARCHAR(255) NOT NULL
 );
 

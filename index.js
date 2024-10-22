@@ -2,7 +2,8 @@
 const express = require('express');
 const path = require('path');
 var session = require('express-session');
-var validator = require ('express-validator');
+var validator = require('express-validator');
+const expressSanitizer = require('express-sanitizer');
 
 // Import mysql module
 const mysql = require('mysql2');
@@ -10,6 +11,9 @@ const mysql = require('mysql2');
 // Create the express application object
 const app = express();
 const port = 8000;
+
+// Create an input sanitizer
+app.use(expressSanitizer());
 
 // Tell Express that we want to use EJS as the templating engine
 app.set('view engine', 'ejs');
@@ -20,7 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 // Set up public folder (for CSS and static files)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Create a session (Task 3)
+// Create a session
 app.use(session({
     secret: 'somerandomstuff',
     resave: false,
@@ -47,93 +51,72 @@ db.connect((err) => {
     console.log('Connected to database');
 });
 
-// Make the `db` connection globally available (optional)
+// Make the `db` connection globally available
 global.db = db;
 
 // Define our application-specific data
 app.locals.shopData = { shopName: "Bettys Books" };
 
-// Define redirectLogin middleware
-const redirectLogin = (req, res, next) => {
-    if (!req.session.userId) {
-        return res.redirect('/login'); // Redirect to login page if user not logged in
-    }
-    next(); // Proceed if logged in
-};
+// Define a route for the homepage
+app.get('/', (req, res) => {
+    res.render('index');  // Ensure you have an `index.ejs` file in your `views` folder
+});
 
-module.exports.redirectLogin = redirectLogin;
-
-
-// Route for login (you need a login page to test redirectLogin)
+// Route for login
 app.get('/login', (req, res) => {
-    res.render('login');  // Render a login page (you need to create login.ejs)
+    res.render('login');
 });
 
 // POST route for handling login form submission
 app.post('/login', (req, res) => {
     const { username, password } = req.body;  // Get username and password from the form
-    
-    // Query to check if the user exists in the database
     const query = 'SELECT * FROM users WHERE username = ?';
     db.query(query, [username], (err, results) => {
         if (err) {
-            console.error('Database query error:', err);
             return res.status(500).send('Server error');
         }
 
         if (results.length > 0) {
             const user = results[0];
-
-            // In a real application, use bcrypt to compare hashed passwords
-            if (password === user.password) {  // Replace with bcrypt.compare() in a real-world scenario
-                // Set the session userId if login is successful
+            if (password === user.password) {
                 req.session.userId = user.id;
-                return res.redirect('/list');  // Redirect to a protected page after successful login
+                return res.redirect('/list');
             } else {
-                return res.status(401).send('Incorrect password');  // Password is incorrect
+                return res.status(401).send('Incorrect password');
             }
         } else {
-            return res.status(404).send('User not found');  // User does not exist
+            return res.status(404).send('User not found');
         }
     });
 });
-
-// Load the route handlers
-const mainRoutes = require("./routes/main");
-app.use('/', mainRoutes);
 
 // Load the route handlers for /users
 const usersRoutes = require('./routes/users');
 app.use('/users', usersRoutes);
 
-// Load the books routes
-const booksRoutes = require('./routes/books');  // Assuming books routes are in /routes/books.js
-app.use('/books', booksRoutes);
+// Load the route handlers for /books
+const booksRoutes = require('./routes/books');
+app.use('/books', booksRoutes);  // Add the books routes
 
 // Example of using redirectLogin on a protected route
-app.get('/list', redirectLogin, function (req, res) {
-    // Example book data (in practice, this could come from your database)
-    const bookData = [
-        { title: 'Book 1', author: 'Author 1' },
-        { title: 'Book 2', author: 'Author 2' }
-    ];
-    res.render('list', { books: bookData });
+app.get('/list', function (req, res) {
+    const sqlquery = "SELECT * FROM books";
+    db.query(sqlquery, (err, result) => {
+        if (err) {
+            return res.status(500).send('Error fetching books from the database.');
+        }
+        res.render('list', { availableBooks: result });
+    });
 });
-
-app.get('/books/search', redirectLogin, function (req, res) {
-    console.log(req.session); // Check if session is available
-    res.render('searchResults');
-});
-
 
 // POST /logout to handle user logout
 app.post('/logout', (req, res) => {
     req.session.destroy(err => {
         if (err) {
-            return res.redirect('/list');  // If there's an error, stay on the list page
+            return res.redirect('/list');
         }
-        res.clearCookie('connect.sid');  // Clear the session cookie
-        res.redirect('/login');  // Redirect to the login page after logging out
+        res.clearCookie('connect.sid');
+        res.redirect('/login');
     });
 });
 

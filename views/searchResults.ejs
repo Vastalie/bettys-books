@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Search Results for "<%= searchText %>"</title>
+</head>
+<body>
+    <h1>Search Results for "<%= searchText %>"</h1>
+
+    <% if (availableBooks && availableBooks.length > 0) { %>
+        <ul>
+            <% availableBooks.forEach(book => { %>
+                <li>
+                    <strong>Title:</strong> <%= book.name %><br>
+                    <strong>Price:</strong> $<%= book.price %>
+                </li>
+                <hr>
+            <% }); %>
+        </ul>
+    <% } else { %>
+        <p>No books found matching your search criteria.</p>
+    <% } %>
+
+    <a href="/books/search">Go back to search</a>
+</body>
+</html>

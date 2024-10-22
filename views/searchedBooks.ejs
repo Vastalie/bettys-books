@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Previously Searched Books</title>
+</head>
+<body>
+    <h1>Previously Searched Books</h1>
+
+    <% if (availableBooks && availableBooks.length > 0) { %>
+        <ul>
+            <% availableBooks.forEach(book => { %>
+                <li>
+                    <strong>Title:</strong> <%= book.name %><br>
+                    <strong>Price:</strong> $<%= book.price %>
+                </li>
+                <hr>
+            <% }); %>
+        </ul>
+    <% } else { %>
+        <p>No books searched for yet.</p>
+    <% } %>
+
+    <a href="/books/search">Search for more books</a>
+</body>
+</html>
