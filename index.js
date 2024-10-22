@@ -2,6 +2,7 @@
 const express = require('express');
 const path = require('path');
 var session = require('express-session');
+var validator = require ('express-validator');
 
 // Import mysql module
 const mysql = require('mysql2');
